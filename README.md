@@ -21,7 +21,7 @@
 
 ## AWS Architecture
 
-![AWS Architecture](screenshots/Architecture.png)
+![AWS Architecture](screenshots/Architecture%20.png)
 
 ## Project Structure
 

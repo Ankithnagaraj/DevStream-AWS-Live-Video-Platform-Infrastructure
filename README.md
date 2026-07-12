@@ -19,6 +19,10 @@
 - FastAPI
 - Cron Automation
 
+## AWS Architecture
+
+![AWS Architecture](screenshots/Architecture.png)
+
 ## Project Structure
 
 - website/

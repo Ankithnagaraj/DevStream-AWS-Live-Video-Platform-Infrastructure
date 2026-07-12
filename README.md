@@ -1,4 +1,11 @@
 # DevStream AWS Live Video Platform Infrastructure
+![AWS](https://img.shields.io/badge/AWS-Cloud-orange?logo=amazonaws)
+![Linux](https://img.shields.io/badge/Linux-Amazon%20Linux-yellow?logo=linux)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)
+![Nginx](https://img.shields.io/badge/Nginx-009639?logo=nginx)
+![CloudFront](https://img.shields.io/badge/CloudFront-AWS-orange)
+![S3](https://img.shields.io/badge/Amazon-S3-orange)
+![RDS](https://img.shields.io/badge/Amazon-RDS-blue)
 
 ## Introduction
 DevStream is a secure cloud-based live video platform developed using AWS and Linux technologies. The project demonstrates secure content upload, processing, storage, and streaming using a multi-tier architecture. It implements network isolation through a Virtual Private Cloud (VPC), dedicated public and private subnets, route tables, and Security Groups to ensure secure communication between all components. The system integrates AWS services such as EC2, Amazon S3, AWS Lambda, Amazon RDS MySQL, API Gateway, CloudFront, and Application Load Balancer to build a scalable and highly available solution. The project highlights cloud networking, automation, Linux administration security, and infrastructure best practices while providing an efficient and reliable live video streaming platform. 

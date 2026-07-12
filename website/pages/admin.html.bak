@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DevStream - Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,sans-serif;}
+nav{background:#161b22;border-bottom:1px solid #30363d;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;}
+.brand{font-size:18px;font-weight:700;color:#fff;}.brand span{color:#f0883e;}
+.nr{display:flex;align-items:center;gap:14px;font-size:13px;color:#8b949e;}
+.bsm{background:#21262d;color:#e6edf3;border:1px solid #30363d;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;}
+.bsm:hover{border-color:#f0883e;color:#f0883e;}
+.wrap{max-width:1060px;margin:28px auto;padding:0 20px;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+.sc{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:18px 20px;}
+.sc .num{font-size:30px;font-weight:700;color:#f0883e;}
+.sc .lbl{font-size:12px;color:#8b949e;margin-top:4px;}
+h2{font-size:18px;font-weight:700;margin-bottom:14px;color:#fff;}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:22px;margin-bottom:22px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:#21262d;color:#8b949e;padding:9px 12px;text-align:left;border-bottom:1px solid #30363d;font-size:11px;text-transform:uppercase;}
+td{padding:9px 12px;border-bottom:1px solid #21262d;vertical-align:middle;}
+.bd{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;}
+.bd.pending{background:#2b1f0f;color:#f0883e;}
+.bd.published{background:#1c2a1e;color:#3fb950;}
+.bd.rejected{background:#2b0f0f;color:#ff7b72;}
+.bpub{background:#3fb950;color:#0d1117;border:none;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;}
+.bpub:hover{background:#56d364;}
+.bpub:disabled{background:#21262d;color:#555;cursor:default;}
+.toast{position:fixed;bottom:22px;right:22px;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;display:none;z-index:999;}
+.toast.ok{background:#1c2a1e;color:#3fb950;border:1px solid #3fb950;}
+.toast.er{background:#2b0f0f;color:#ff7b72;border:1px solid #ff7b72;}
+@media(max-width:600px){.stats{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">📺 Dev<span>Stream</span> Admin</div>
+  <div class="nr">
+    <span>Admin: <strong id="nu"></strong></span>
+    <button class="bsm" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<div class="wrap">
+  <div class="stats">
+    <div class="sc"><div class="num" id="st">0</div><div class="lbl">Total Videos</div></div>
+    <div class="sc"><div class="num" id="sp">0</div><div class="lbl">Pending Review</div></div>
+    <div class="sc"><div class="num" id="sl">0</div><div class="lbl">Published</div></div>
+  </div>
+  <h2>📋 All Videos &mdash; Review &amp; Publish</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th>ID</th><th>Title</th><th>Creator</th><th>Status</th><th>Uploaded</th><th>Action</th></tr></thead>
+      <tbody id="ab"><tr><td colspan="6" style="text-align:center;color:#555;padding:20px">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var token=localStorage.getItem('ds_token');
+var role=localStorage.getItem('ds_role');
+if(!token||role!=='admin'){window.location.href='/';}
+document.getElementById('nu').textContent=localStorage.getItem('ds_user')||'';
+var H={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+async function loadVids(){
+  try{
+    var res=await fetch('/api/admin/videos',{headers:H});
+    if(!res.ok){showToast('er','Session expired. Please log in again.');setTimeout(function(){window.location.href='/';},2000);return;}
+    var vids=await res.json();
+    document.getElementById('st').textContent=vids.length;
+    document.getElementById('sp').textContent=vids.filter(function(v){return v.status==='pending';}).length;
+    document.getElementById('sl').textContent=vids.filter(function(v){return v.status==='published';}).length;
+    var tb=document.getElementById('ab');
+    if(!vids.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:#555;padding:20px">No videos yet.</td></tr>';return;}
+    tb.innerHTML=vids.map(function(v){
+      return '<tr><td>'+v.id+'</td>'+
+        '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+v.title+'</td>'+
+        '<td>'+v.creator+'</td>'+
+        '<td><span class="bd '+v.status+'">'+v.status+'</span></td>'+
+        '<td>'+(v.upload_time||'')+'</td>'+
+        '<td><button class="bpub" '+(v.status==='published'?'disabled':'')+' onclick="pub('+v.id+',\\''+v.s3_key+'\\',this)">'+(v.status==='published'?'Published':'Publish')+'</button></td>'+
+        '</tr>';
+    }).join('');
+  }catch(e){console.error(e);}
+}
+async function pub(id,key,btn){
+  btn.disabled=true;btn.textContent='Publishing...';
+  try{
+    var res=await fetch('/api/admin/publish',{method:'POST',headers:H,body:JSON.stringify({video_id:id,s3_key:key})});
+    var data=await res.json();
+    if(!res.ok){showToast('er',data.detail||'Publish failed.');btn.disabled=false;btn.textContent='Publish';return;}
+    showToast('ok','Video ID '+id+' published to CloudFront!');
+    loadVids();
+  }catch(e){showToast('er','Network error.');btn.disabled=false;btn.textContent='Publish';}
+}
+function showToast(t,m){
+  var el=document.getElementById('toast');
+  el.className='toast '+t;el.textContent=m;el.style.display='block';
+  setTimeout(function(){el.style.display='none';},4000);
+}
+function logout(){localStorage.clear();window.location.href='/';}
+loadVids();
+</script>
+</body>
+</html>

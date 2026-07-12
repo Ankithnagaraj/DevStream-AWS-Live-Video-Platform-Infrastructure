@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DevStream - Watch</title>
+<style>
+/onclick="play/onclick="play*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,sans-serif;}
+nav{background:#161b22;border-bottom:1px solid #30363d;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;}
+.brand{font-size:18px;font-weight:700;color:#fff;}.brand span{color:#3fb950;}
+.nr{display:flex;align-items:center;gap:14px;font-size:13px;color:#8b949e;}
+.bsm{background:#21262d;color:#e6edf3;border:1px solid #30363d;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;}
+.bsm:hover{border-color:#3fb950;color:#3fb950;}
+.wrap{max-width:1060px;margin:28px auto;padding:0 20px;}
+h2{font-size:18px;font-weight:700;margin-bottom:16px;color:#fff;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+.vc{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s;}
+.vc:hover{border-color:#3fb950;transform:translateY(-2px);}
+.th{height:140px;background:linear-gradient(135deg,#0d2340,#21262d);display:flex;align-items:center;justify-content:center;font-size:44px;}
+.vi{padding:14px 16px;}
+.vi h3{font-size:13.5px;font-weight:600;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vi .dc{font-size:12px;color:#8b949e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vi .mt{font-size:11px;color:#555;margin-top:7px;}
+.empty{text-align:center;padding:60px;color:#555;font-size:14px;}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.ov.show{display:flex;}
+.modal{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:26px;width:100%;max-width:680px;position:relative;}
+.modal h3{font-size:17px;font-weight:700;color:#fff;margin-bottom:14px;padding-right:32px;}
+.modal video{width:100%;border-radius:8px;background:#000;max-height:340px;}
+.cbtn{position:absolute;top:14px;right:14px;background:none;border:none;color:#8b949e;font-size:24px;cursor:pointer;line-height:1;}
+.urlbox{margin-top:14px;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 14px;}
+.urlbox .ul{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px;font-weight:700;}
+.urlbox .ut{font-size:11px;color:#3fb950;word-break:break-all;font-family:'Consolas',monospace;}
+@media(max-width:600px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">📺 Dev<span>Stream</span></div>
+  <div class="nr">
+    <span>Viewer: <strong id="nu"></strong></span>
+    <button class="bsm" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<div class="wrap">
+  <h2>🎬 Published Videos</h2>
+  <div class="grid" id="vg"><div class="empty">Loading videos...</div></div>
+</div>
+<div class="ov" id="ov">
+  <div class="modal">
+    <button class="cbtn" onclick="closeModal()">&times;</button>
+    <h3 id="mt">Loading...</h3>
+    <video id="vp" controls autoplay playsinline></video>
+    <div class="urlbox">
+      <div class="ul">CloudFront Signed URL (expires 1 hour)</div>
+      <div class="ut" id="su">Generating...</div>
+    </div>
+  </div>
+</div>
+<script>
+var token = localStorage.getItem('ds_token');
+
+if (!token || token === "null" || token === "undefined") {
+    localStorage.clear();
+    window.location.href='/';
+}
+document.getElementById('nu').textContent=localStorage.getItem('ds_user')||'';
+var H={'Authorization':'Bearer '+token};
+async function loadVids(){
+  try{
+    var res=await fetch('/api/viewer/videos',{headers:H});
+    if(res.status === 401){
+    localStorage.clear();
+    alert("Session expired. Please login again.");
+    window.location.href='/';
+    return;
+}
+
+if(!res.ok){
+    throw new Error("API Error " + res.status);
+}
+    var vids=await res.json();
+    var g=document.getElementById('vg');
+    if(!vids.length){g.innerHTML='<div class="empty">No published videos yet.<br/>Check back soon!</div>';return;}
+    g.innerHTML=vids.map(function(v){
+      return '<div class="vc" onclick="play('+v.id+',`'+v.title+'`)">'+
+        '<div class="th">🎥</div>'+
+        '<div class="vi"><h3>'+v.title+'</h3><div class="dc">'+(v.description||'No description')+'</div>'+
+        '<div class="mt">By '+v.creator+' &nbsp;&middot;&nbsp; '+(v.published_time||'')+'</div></div></div>';
+    }).join('');
+  }catch(e){console.error(e);}
+}
+async function play(id,title){
+  document.getElementById('mt').textContent=title;
+  document.getElementById('su').textContent='Generating signed URL...';
+  document.getElementById('vp').src='';
+  document.getElementById('ov').classList.add('show');
+  try{
+    var res=await fetch('/api/viewer/stream/'+id,{headers:H});
+    var data=await res.json();
+    if(!res.ok){document.getElementById('su').textContent='Error: '+(data.detail||'failed');return;}
+    document.getElementById('vp').src=data.stream_url;
+    document.getElementById('su').textContent=data.stream_url;
+  }catch(e){document.getElementById('su').textContent='Network error.';}
+}
+function closeModal(){
+  document.getElementById('ov').classList.remove('show');
+  var vp=document.getElementById('vp');
+  vp.pause();vp.src='';
+}
+document.getElementById('ov').addEventListener('click',function(e){if(e.target===this)closeModal();});
+function logout(){localStorage.clear();window.location.href='/';}
+loadVids();
+</script>
+</body>
+</html>

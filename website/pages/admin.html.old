@@ -1,0 +1,95 @@
+<script>
+const token = localStorage.getItem('token');
+
+if(!token){
+    window.location.href='/';
+}
+
+const H = {
+    'Authorization':'Bearer '+token,
+    'Content-Type':'application/json'
+};
+
+async function loadVids(){
+    try{
+        const res = await fetch('/api/admin/videos',{
+            headers:{'Authorization':'Bearer '+token}
+        });
+
+        if(!res.ok){
+            alert('Session expired');
+            localStorage.clear();
+            location.href='/';
+            return;
+        }
+
+        const vids = await res.json();
+
+        document.getElementById('st').innerText = vids.length;
+        document.getElementById('sp').innerText =
+            vids.filter(v=>v.status==='pending').length;
+        document.getElementById('sl').innerText =
+            vids.filter(v=>v.status==='published').length;
+
+        let html='';
+
+        vids.forEach(v=>{
+            html += `
+            <tr>
+                <td>${v.id}</td>
+                <td>${v.title}</td>
+                <td>${v.creator}</td>
+                <td>${v.status}</td>
+                <td>${v.upload_time || ''}</td>
+                <td>
+                    ${
+                        v.status==='published'
+                        ? 'Published'
+                        : `<button onclick="pub(${v.id}, '${v.s3_key}')">Publish</button>`
+                    }
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById('ab').innerHTML = html;
+
+    }catch(err){
+        console.error(err);
+    }
+}
+
+async function pub(id,key){
+
+    const res = await fetch('/api/admin/publish',{
+        method:'POST',
+        headers:H,
+        body:JSON.stringify({
+            video_id:id,
+            s3_key:key
+        })
+    });
+
+    const data = await res.json();
+
+    if(!res.ok){
+        alert(data.detail || 'Publish failed');
+        return;
+    }
+
+    alert('Published successfully');
+    loadVids();
+}
+
+function logout(){
+    localStorage.clear();
+    window.location.href='/';
+}
+
+window.logout = logout;
+window.pub = pub;
+
+loadVids();
+</script>
+
+</body>
+</html>

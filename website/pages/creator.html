@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DevStream - Creator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',system-ui,sans-serif;}
+nav{background:#161b22;border-bottom:1px solid #30363d;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;}
+.brand{font-size:18px;font-weight:700;color:#fff;}.brand span{color:#58a6ff;}
+.nr{display:flex;align-items:center;gap:14px;font-size:13px;color:#8b949e;}
+.bsm{background:#21262d;color:#e6edf3;border:1px solid #30363d;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;}
+.bsm:hover{border-color:#58a6ff;color:#58a6ff;}
+.wrap{max-width:860px;margin:28px auto;padding:0 20px;}
+h2{font-size:18px;font-weight:700;margin-bottom:14px;color:#fff;}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:24px;margin-bottom:22px;}
+label{display:block;color:#8b949e;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin:14px 0 6px;}
+label:first-child{margin-top:0;}
+input[type=text],textarea{width:100%;padding:10px 13px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:14px;outline:none;}
+input[type=text]:focus,textarea:focus{border-color:#58a6ff;}
+textarea{resize:vertical;min-height:72px;}
+.dz{border:2px dashed #30363d;border-radius:8px;padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;margin-top:6px;}
+.dz:hover,.dz.ov{border-color:#58a6ff;background:#0d2340;}
+.dz .di{font-size:36px;margin-bottom:8px;}
+.dz p{color:#8b949e;font-size:13px;}
+.dz .hint{font-size:11px;color:#555;margin-top:5px;}
+.pb{height:6px;background:#21262d;border-radius:3px;margin-top:12px;display:none;}
+.pf{height:100%;background:#58a6ff;border-radius:3px;width:0%;transition:width .3s;}
+.msg{padding:10px 14px;border-radius:6px;margin-top:12px;font-size:13px;display:none;}
+.msg.ok{background:#1c2a1e;color:#3fb950;border:1px solid #3fb950;}
+.msg.er{background:#2b0f0f;color:#ff7b72;border:1px solid #ff7b72;}
+.upbtn{width:100%;margin-top:16px;padding:12px;background:#58a6ff;color:#0d1117;font-size:14px;font-weight:700;border:none;border-radius:6px;cursor:pointer;}
+.upbtn:hover{background:#79c0ff;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:#21262d;color:#8b949e;padding:9px 12px;text-align:left;border-bottom:1px solid #30363d;font-size:11px;text-transform:uppercase;}
+td{padding:9px 12px;border-bottom:1px solid #21262d;}
+.bd{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;}
+.bd.pending{background:#2b1f0f;color:#f0883e;}
+.bd.published{background:#1c2a1e;color:#3fb950;}
+.bd.rejected{background:#2b0f0f;color:#ff7b72;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">📺 Dev<span>Stream</span></div>
+  <div class="nr">
+    <span>Creator: <strong id="nu"></strong></span>
+    <button class="bsm" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<div class="wrap">
+  <h2>⬆ Upload New Video</h2>
+  <div class="card">
+    <label>Video Title *</label>
+    <input type="text" id="vt" placeholder="Enter a title for your video"/>
+    <label>Description</label>
+    <textarea id="vd" placeholder="Briefly describe the video..."></textarea>
+    <label>Video File *</label>
+    <div class="dz" id="dz" onclick="document.getElementById('fi').click()">
+      <div class="di">📁</div>
+      <p>Click or drag and drop your video file here</p>
+      <div class="hint">Allowed: .mp4 .mkv .avi .mov .ts  |  Max 500 MB</div>
+    </div>
+    <input type="file" id="fi" accept=".mp4,.mkv,.avi,.mov,.ts" style="display:none"/>
+    <div class="pb" id="pb"><div class="pf" id="pf"></div></div>
+    <div class="msg" id="um"></div>
+    <button class="upbtn" onclick="upload()">⬆ Upload Video</button>
+  </div>
+  <h2>📋 My Videos</h2>
+  <div class="card">
+    <table><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Uploaded</th></tr></thead>
+    <tbody id="vb"><tr><td colspan="4" style="text-align:center;color:#555;padding:20px">Loading...</td></tr></tbody></table>
+  </div>
+</div>
+<script>
+var token=localStorage.getItem('ds_token');
+var role=localStorage.getItem('ds_role');
+if(!token||role!=='creator'){window.location.href='/';}
+document.getElementById('nu').textContent=localStorage.getItem('ds_user')||'';
+var H={'Authorization':'Bearer '+token};
+var dz=document.getElementById('dz');
+var fi=document.getElementById('fi');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('ov');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('ov');});
+dz.addEventListener('drop',function(e){
+  e.preventDefault();dz.classList.remove('ov');
+  fi.files=e.dataTransfer.files;
+  if(fi.files[0])dz.querySelector('p').textContent='Selected: '+fi.files[0].name;
+});
+fi.onchange=function(){if(fi.files[0])dz.querySelector('p').textContent='Selected: '+fi.files[0].name;};
+async function upload(){
+  var title=document.getElementById('vt').value.trim();
+  var desc=document.getElementById('vd').value.trim();
+  var file=fi.files[0];
+  if(!title){showMsg('er','Please enter a video title.');return;}
+  if(!file){showMsg('er','Please select a file.');return;}
+  if(file.size>500*1024*1024){showMsg('er','File too large. Max 500 MB.');return;}
+  var fd=new FormData();
+  fd.append('file',file);fd.append('title',title);fd.append('description',desc);
+  document.getElementById('pb').style.display='block';
+  document.getElementById('pf').style.width='30%';
+  document.getElementById('um').style.display='none';
+  try{
+    document.getElementById('pf').style.width='60%';
+    var res=await fetch('/api/creator/upload',{method:'POST',headers:H,body:fd});
+    var data=await res.json();
+    document.getElementById('pf').style.width='100%';
+    if(!res.ok){showMsg('er',data.detail||'Upload failed.');return;}
+    showMsg('ok','Upload successful! Video ID: '+data.video_id+' — Pending admin review.');
+    document.getElementById('vt').value='';
+    document.getElementById('vd').value='';
+    fi.value='';
+    dz.querySelector('p').textContent='Click or drag and drop your video file here';
+    loadVids();
+  }catch(e){showMsg('er','Network error. Try again.');}
+  finally{setTimeout(function(){document.getElementById('pb').style.display='none';document.getElementById('pf').style.width='0%';},1500);}
+}
+function showMsg(t,m){var e=document.getElementById('um');e.className='msg '+t;e.textContent=m;e.style.display='block';}
+async function loadVids(){
+  try{
+    var res=await fetch('/api/creator/videos',{headers:H});
+    var vids=await res.json();
+    var tb=document.getElementById('vb');
+    if(!vids.length){tb.innerHTML='<tr><td colspan="4" style="text-align:center;color:#555;padding:20px">No uploads yet.</td></tr>';return;}
+    tb.innerHTML=vids.map(function(v){return '<tr><td>'+v.id+'</td><td>'+v.title+'</td><td><span class="bd '+v.status+'">'+v.status+'</span></td><td>'+(v.upload_time||'')+'</td></tr>';}).join('');
+  }catch(e){console.error(e);}
+}
+function logout(){localStorage.clear();window.location.href='/';}
+loadVids();
+</script>
+</body>
+</html>

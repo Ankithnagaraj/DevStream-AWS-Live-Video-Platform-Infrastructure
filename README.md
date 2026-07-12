@@ -1,5 +1,4 @@
 # DevStream AWS Live Video Platform Infrastructure
-  (Advanced Linux + AWS End-to-End Deployment Project)
 ![AWS](https://img.shields.io/badge/AWS-Cloud-orange?logo=amazonaws)
 ![Amazon Linux](https://img.shields.io/badge/Linux-Amazon%20Linux%202023-yellow?logo=linux)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)
